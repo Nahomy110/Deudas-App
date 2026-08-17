@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Deudas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <style>
+        .nav-link.active { border-bottom: 3px solid white; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans pb-24">
+
+    <header class="bg-blue-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-around p-3">
+            <button onclick="cambiarVista('deudas')" id="navDeudas" class="nav-link active pb-1 text-sm">Deudas</button>
+            <button onclick="cambiarVista('historial')" id="navHistorial" class="nav-link pb-1 text-sm opacity-80">Historial</button>
+            <button onclick="cambiarVista('proveedores')" id="navProveedores" class="nav-link pb-1 text-sm opacity-80">Proveedores</button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-4">
+
+        <section id="vistaDeudas" class="space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-600 flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">Deuda Total Activa</p>
+                    <h2 id="totalGeneral" class="text-2xl font-bold text-gray-900">$0.00</h2>
+                </div>
+                <button onclick="abrirModalDeuda()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow">
+                    + Nueva Deuda
+                </button>
+            </div>
+
+            <div class="space-y-3" id="listaDeudasActivas">
+                </div>
+        </section>
+
+        <section id="vistaHistorial" class="space-y-4 hidden">
+            <h2 class="text-lg font-bold text-gray-700">Historial de Abonos</h2>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Filtrar por Proveedor:</label>
+                <select id="filtroHistorialProv" onchange="renderizarHistorial()" class="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-600">
+                    <option value="todos">Todos los proveedores</option>
+                </select>
+            </div>
+            <div class="space-y-2" id="listaHistorial">
+                </div>
+        </section>
+
+        <section id="vistaProveedores" class="space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-700">Directorio de Proveedores</h2>
+                <button onclick="abrirModalProveedor()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow">
+                    + Proveedor
+                </button>
+            </div>
+            <div class="space-y-3" id="listaProveedores">
+                </div>
+        </section>
+
+    </main>
+
+    <div id="modalProveedor" class="fixed inset-0 bg-black/50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white w-full max-w-sm p-5 rounded-2xl shadow-xl space-y-3">
+            <h3 class="text-lg font-bold" id="tituloModalProv">Nuevo Proveedor</h3>
+            <input type="hidden" id="indexProvEdit" value="-1">
+            <input type="text" id="inputNombreProv" placeholder="Nombre o Empresa" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-green-600">
+            <input type="text" id="inputContactoProv" placeholder="Teléfono o Contacto (Opcional)" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-green-600">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="cerrarModalProveedor()" class="px-4 py-2 text-gray-500 text-sm font-medium">Cancelar</button>
+                <button onclick="guardarProveedor()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDeuda" class="fixed inset-0 bg-black/50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white w-full max-w-sm p-5 rounded-2xl shadow-xl space-y-3">
+            <h3 class="text-lg font-bold">Registrar Nueva Deuda</h3>
+            <select id="selectProvDeuda" class="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-600">
+                </select>
+            <input type="number" id="inputMontoDeuda" placeholder="Monto total de la deuda ($)" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-600">
+            <input type="text" id="inputConceptoDeuda" placeholder="Concepto (Ej: Mercadería, Factura #12)" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-600">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="cerrarModalDeuda()" class="px-4 py-2 text-gray-500 text-sm font-medium">Cancelar</button>
+                <button onclick="guardarDeuda()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAbono" class="fixed inset-0 bg-black/50 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white w-full max-w-sm p-5 rounded-2xl shadow-xl space-y-3">
+            <h3 class="text-lg font-bold" id="tituloModalAbono">Registrar Abono</h3>
+            <input type="hidden" id="idDeudaActual">
+            <input type="number" id="inputMontoAbono" placeholder="Monto del Abono ($)" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600">
+            <input type="text" id="inputDetalleAbono" placeholder="¿Qué se le dio? (Efectivo, Mercadería...)" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="cerrarModalAbono()" class="px-4 py-2 text-gray-500 text-sm font-medium">Cancelar</button>
+                <button onclick="registrarAbono()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Abonar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        let datos = JSON.parse(localStorage.getItem('deudasPapaApp')) || {
+            proveedores: [],
+            deudas: [],
+            historial: []
+        };
+
+        function guardarStorage() {
+            localStorage.setItem('deudasPapaApp', JSON.stringify(datos));
+            renderizarTodo();
+        }
+
+        function cambiarVista(vista) {
+            document.getElementById('vistaDeudas').classList.add('hidden');
+            document.getElementById('vistaHistorial').classList.add('hidden');
+            document.getElementById('vistaProveedores').classList.add('hidden');
+
+            document.getElementById('navDeudas').classList.remove('active', 'opacity-100');
+            document.getElementById('navDeudas').classList.add('opacity-80');
+            document.getElementById('navHistorial').classList.remove('active', 'opacity-100');
+            document.getElementById('navHistorial').classList.add('opacity-80');
+            document.getElementById('navProveedores').classList.remove('active', 'opacity-100');
+            document.getElementById('navProveedores').classList.add('opacity-80');
+
+            if(vista === 'deudas') {
+                document.getElementById('vistaDeudas').classList.remove('hidden');
+                document.getElementById('navDeudas').classList.add('active', 'opacity-100');
+            } else if(vista === 'historial') {
+                document.getElementById('vistaHistorial').classList.remove('hidden');
+                document.getElementById('navHistorial').classList.add('active', 'opacity-100');
+            } else if(vista === 'proveedores') {
+                document.getElementById('vistaProveedores').classList.remove('hidden');
+                document.getElementById('navProveedores').classList.add('active', 'opacity-100');
+            }
+        }
+
+        function renderizarTodo() {
+            renderizarDeudas();
+            renderizarProveedores();
+            renderizarHistorial();
+        }
+
+        function renderizarDeudas() {
+            let contenedor = document.getElementById('listaDeudasActivas');
+            let totalGeneralEl = document.getElementById('totalGeneral');
+            contenedor.innerHTML = '';
+            let total = 0;
+
+            let activas = datos.deudas.filter(d => d.monto > 0);
+
+            if(activas.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-6">No hay deudas activas registradas.</p>`;
+            } else {
+                activas.forEach(d => {
+                    total += d.monto;
+                    contenedor.innerHTML += `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-gray-800">${d.proveedor}</h4>
+                                <p class="text-xs text-gray-500">${d.concepto}</p>
+                                <p class="text-sm text-red-600 font-bold mt-1">Pendiente: $${d.monto.toFixed(2)}</p>
+                            </div>
+                            <button onclick="abrirModalAbono('${d.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow">Abonar</button>
+                        </div>
+                    `;
+                });
+            }
+            totalGeneralEl.innerText = `$${total.toFixed(2)}`;
+        }
+
+        function renderizarProveedores() {
+            let contenedor = document.getElementById('listaProveedores');
+            let selectDeuda = document.getElementById('selectProvDeuda');
+            let selectFiltro = document.getElementById('filtroHistorialProv');
+            
+            contenedor.innerHTML = '';
+            selectDeuda.innerHTML = '';
+            selectFiltro.innerHTML = '<option value="todos">Todos los proveedores</option>';
+
+            if(datos.proveedores.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-6">Aún no hay proveedores registrados.</p>`;
+                selectDeuda.innerHTML = `<option value="">Registra un proveedor primero</option>`;
+            } else {
+                datos.proveedores.forEach((p, idx) => {
+                    contenedor.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl shadow-sm border flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${p.nombre}</h4>
+                                <p class="text-xs text-gray-500">${p.contacto || 'Sin contacto'}</p>
+                            </div>
+                            <button onclick="editarProveedor(${idx})" class="text-blue-600 text-xs font-semibold px-2 py-1 bg-blue-50 rounded">Editar</button>
+                        </div>
+                    `;
+                    selectDeuda.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+                    selectFiltro.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+                });
+            }
+        }
+
+        function renderizarHistorial() {
+            let contenedor = document.getElementById('listaHistorial');
+            let filtro = document.getElementById('filtroHistorialProv').value;
+            contenedor.innerHTML = '';
+
+            let historialFiltrado = filtro === 'todos' ? datos.historial : datos.historial.filter(h => h.proveedor === filtro);
+
+            if(historialFiltrado.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-6">No hay registros de abonos.</p>`;
+            } else {
+                historialFiltrado.slice().reverse().forEach(h => {
+                    contenedor.innerHTML += `
+                        <div class="bg-white p-3 rounded-lg shadow-sm border text-sm flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-gray-700">${h.proveedor}</span>
+                                <p class="text-xs text-gray-500">${h.detalle} - <span class="italic">${h.fecha}</span></p>
+                            </div>
+                            <span class="font-bold text-emerald-600">-$${h.monto.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // Modales Proveedores
+        function abrirModalProveedor() {
+            document.getElementById('indexProvEdit').value = -1;
+            document.getElementById('tituloModalProv').innerText = "Nuevo Proveedor";
+            document.getElementById('inputNombreProv').value = '';
+            document.getElementById('inputContactoProv').value = '';
+            document.getElementById('modalProveedor').classList.remove('hidden');
+            document.getElementById('modalProveedor').classList.add('flex');
+        }
+        function editarProveedor(idx) {
+            let p = datos.proveedores[idx];
+            document.getElementById('indexProvEdit').value = idx;
+            document.getElementById('tituloModalProv').innerText = "Editar Proveedor";
+            document.getElementById('inputNombreProv').value = p.nombre;
+            document.getElementById('inputContactoProv').value = p.contacto;
+            document.getElementById('modalProveedor').classList.remove('hidden');
+            document.getElementById('modalProveedor').classList.add('flex');
+        }
+        function cerrarModalProveedor() {
+            document.getElementById('modalProveedor').classList.add('hidden');
+            document.getElementById('modalProveedor').classList.remove('flex');
+        }
+        function guardarProveedor() {
+            let idx = parseInt(document.getElementById('indexProvEdit').value);
+            let nombre = document.getElementById('inputNombreProv').value.trim();
+            let contacto = document.getElementById('inputContactoProv').value.trim();
+            if(!nombre) return alert('Escribe el nombre del proveedor.');
+
+            if(idx === -1) {
+                datos.proveedores.push({ nombre, contacto });
+            } else {
+                datos.proveedores[idx].nombre = nombre;
+                datos.proveedores[idx].contacto = contacto;
+            }
+            cerrarModalProveedor();
+            guardarStorage();
+        }
+
+        // Modales Deudas
+        function abrirModalDeuda() {
+            if(datos.proveedores.length === 0) return alert('Primero debes registrar al menos un proveedor.');
+            document.getElementById('inputMontoDeuda').value = '';
+            document.getElementById('inputConceptoDeuda').value = '';
+            document.getElementById('modalDeuda').classList.remove('hidden');
+            document.getElementById('modalDeuda').classList.add('flex');
+        }
+        function cerrarModalDeuda() {
+            document.getElementById('modalDeuda').classList.add('hidden');
+            document.getElementById('modalDeuda').classList.remove('flex');
+        }
+        function guardarDeuda() {
+            let proveedor = document.getElementById('selectProvDeuda').value;
+            let monto = parseFloat(document.getElementById('inputMontoDeuda').value);
+            let concepto = document.getElementById('inputConceptoDeuda').value.trim() || 'Deuda general';
+
+            if(isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido.');
+
+            datos.deudas.push({
+                id: '_' + Math.random().toString(36).substr(2, 9),
+                proveedor,
+                monto,
+                concepto
+            });
+            cerrarModalDeuda();
+            guardarStorage();
+        }
+
+        // Modales Abonos
+        function abrirModalAbono(id) {
+            document.getElementById('idDeudaActual').value = id;
+            let deuda = datos.deudas.find(d => d.id === id);
+            document.getElementById('tituloModalAbono').innerText = `Abonar a: ${deuda.proveedor}`;
+            document.getElementById('inputMontoAbono').value = '';
+            document.getElementById('inputDetalleAbono').value = '';
+            document.getElementById('modalAbono').classList.remove('hidden');
+            document.getElementById('modalAbono').classList.add('flex');
+        }
+        function cerrarModalAbono() {
+            document.getElementById('modalAbono').classList.add('hidden');
+            document.getElementById('modalAbono').classList.remove('flex');
+        }
+        function registrarAbono() {
+            let id = document.getElementById('idDeudaActual').value;
+            let monto = parseFloat(document.getElementById('inputMontoAbono').value);
+            let detalle = document.getElementById('inputDetalleAbono').value.trim() || 'Abono general';
+            let deuda = datos.deudas.find(d => d.id === id);
+
+            if(isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido.');
+            if(monto > deuda.monto) return alert('El abono no puede superar la deuda pendiente.');
+
+            deuda.monto -= monto;
+            let fecha = new Date().toLocaleDateString();
+
+            datos.historial.push({
+                proveedor: deuda.proveedor,
+                monto,
+                detalle,
+                fecha
+            });
+
+            cerrarModalAbono();
+            guardarStorage();
+        }
+
+        renderizarTodo();
+    </script>
+</body>
+</html>
